@@ -7,7 +7,7 @@ import json
 import yaml
 from pathlib import Path
 from typing import Dict, Any, Optional
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 
 
 @dataclass
@@ -63,11 +63,11 @@ class DatabaseConfig:
 @dataclass
 class NmapAIConfig:
     """Main configuration class."""
-    ai: AIConfig = AIConfig()
-    scanning: ScanConfig = ScanConfig()
-    output: OutputConfig = OutputConfig()
-    web: WebConfig = WebConfig()
-    database: DatabaseConfig = DatabaseConfig()
+    ai: AIConfig = field(default_factory=AIConfig)
+    scanning: ScanConfig = field(default_factory=ScanConfig)
+    output: OutputConfig = field(default_factory=OutputConfig)
+    web: WebConfig = field(default_factory=WebConfig)
+    database: DatabaseConfig = field(default_factory=DatabaseConfig)
     log_level: str = "INFO"
     debug: bool = False
 
