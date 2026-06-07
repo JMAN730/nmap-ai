@@ -15,6 +15,7 @@ from ..utils.logger import get_logger
 from ..utils.validators import validate_target, validate_ports
 from .parser import ResultParser
 from .ai_engine import AIEngine
+from .history import ScanHistoryStore
 
 
 class NmapAIScanner:
@@ -22,15 +23,24 @@ class NmapAIScanner:
     Advanced Nmap scanner with AI capabilities.
     """
     
-    def __init__(self, ai_enabled: bool = True):
-        """Initialize the scanner."""
+    def __init__(self, ai_enabled: bool = True, db_url: Optional[str] = None):
+        """Initialize the scanner.
+
+        Args:
+            ai_enabled: Enable the heuristic AI engine.
+            db_url: SQLite URL for persistent scan history. Defaults to
+                ``config.database.url``.
+        """
         self.config = get_config()
         self.logger = get_logger(__name__)
         self.nm = nmap.PortScanner()
         self.ai_enabled = ai_enabled
         self.ai_engine = AIEngine() if ai_enabled else None
         self.parser = ResultParser()
+        # In-memory history is kept for within-process scan-id generation and
+        # adaptive planning; the store persists across processes.
         self.scan_history: List[Dict[str, Any]] = []
+        self.history_store = ScanHistoryStore(db_url or self.config.database.url)
     
     def scan(
         self,
@@ -107,9 +117,13 @@ class NmapAIScanner:
             "results": results
         }
         
-        # Store in history
+        # Store in history (in-memory + persistent)
         self.scan_history.append(scan_summary)
-        
+        try:
+            self.history_store.save(scan_summary)
+        except Exception as e:
+            self.logger.warning(f"Could not persist scan history: {e}")
+
         return scan_summary
     
     def _perform_single_scan(
@@ -245,9 +259,9 @@ class NmapAIScanner:
         if not self.ai_enabled:
             return self.scan([target])
         
-        # AI-driven scan planning
+        # AI-driven scan planning (learns from persisted history when enabled)
         scan_plan = self.ai_engine.create_scan_plan(
-            target, scan_profile, self.scan_history if learn_from_previous else []
+            target, scan_profile, self.get_scan_history() if learn_from_previous else []
         )
         
         # Execute the planned scan
@@ -302,14 +316,23 @@ class NmapAIScanner:
         return results
     
     def get_scan_history(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
-        """Get scan history."""
-        if limit:
-            return self.scan_history[-limit:]
-        return self.scan_history.copy()
-    
+        """Get scan history from persistent storage (oldest-first)."""
+        try:
+            return self.history_store.get(limit=limit)
+        except Exception as e:
+            self.logger.warning(f"Could not read scan history: {e}")
+            # Fall back to in-memory history for this process.
+            if limit:
+                return self.scan_history[-limit:]
+            return self.scan_history.copy()
+
     def clear_scan_history(self) -> None:
-        """Clear scan history."""
+        """Clear scan history (in-memory and persistent)."""
         self.scan_history.clear()
+        try:
+            self.history_store.clear()
+        except Exception as e:
+            self.logger.warning(f"Could not clear scan history: {e}")
     
     def _generate_scan_id(self) -> str:
         """Generate unique scan ID."""

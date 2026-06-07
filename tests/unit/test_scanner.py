@@ -15,10 +15,11 @@ from nmap_ai.core.scanner import NmapAIScanner
 
 
 @pytest.fixture
-def scanner():
-    """A scanner with PortScanner mocked and AI disabled (pure heuristic off)."""
+def scanner(tmp_path):
+    """A scanner with PortScanner mocked, AI disabled, and an isolated DB."""
+    db_url = f"sqlite:///{tmp_path / 'history.db'}"
     with patch("nmap_ai.core.scanner.nmap.PortScanner"):
-        return NmapAIScanner(ai_enabled=False)
+        yield NmapAIScanner(ai_enabled=False, db_url=db_url)
 
 
 @pytest.fixture
@@ -114,3 +115,45 @@ class TestScan:
     def test_scan_invalid_ports(self, scanner):
         with pytest.raises(ValueError, match="Invalid port"):
             scanner.scan("127.0.0.1", ports="not-ports!!")
+
+
+def _wire_mock_scan(scanner, host="127.0.0.1"):
+    scanner.nm.scan = MagicMock()
+    scanner.nm.all_hosts = MagicMock(return_value=[host])
+    scanner.nm.command_line = MagicMock(return_value=f"nmap {host}")
+    scanner.nm.__getitem__ = MagicMock(return_value={
+        "tcp": {22: {"state": "open", "name": "ssh"}},
+    })
+
+
+class TestHistoryPersistence:
+    def test_history_survives_new_instance(self, tmp_path):
+        """A fresh scanner (new process) sees scans persisted earlier."""
+        db_url = f"sqlite:///{tmp_path / 'history.db'}"
+
+        with patch("nmap_ai.core.scanner.nmap.PortScanner"):
+            first = NmapAIScanner(ai_enabled=False, db_url=db_url)
+        _wire_mock_scan(first)
+        first.scan("127.0.0.1", ports="1-100", ai_optimize=False)
+        first.history_store.close()
+
+        # Simulate a brand new process: a separate scanner over the same DB.
+        with patch("nmap_ai.core.scanner.nmap.PortScanner"):
+            second = NmapAIScanner(ai_enabled=False, db_url=db_url)
+        history = second.get_scan_history()
+        assert len(history) == 1
+        assert history[0]["targets"] == ["127.0.0.1"]
+
+    def test_clear_history(self, scanner):
+        _wire_mock_scan(scanner)
+        scanner.scan("127.0.0.1", ports="1-100", ai_optimize=False)
+        assert len(scanner.get_scan_history()) == 1
+        scanner.clear_scan_history()
+        assert scanner.get_scan_history() == []
+
+    def test_limit_returns_recent(self, scanner):
+        _wire_mock_scan(scanner)
+        for _ in range(3):
+            scanner.scan("127.0.0.1", ports="1-100", ai_optimize=False)
+        assert len(scanner.get_scan_history()) == 3
+        assert len(scanner.get_scan_history(limit=2)) == 2

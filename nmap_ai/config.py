@@ -51,10 +51,15 @@ class WebConfig:
     max_upload_size: int = 10 * 1024 * 1024  # 10MB
 
 
+def _default_database_url() -> str:
+    """User-global SQLite location so scan history is cwd-independent."""
+    return f"sqlite:///{Path.home() / '.nmap-ai' / 'history.db'}"
+
+
 @dataclass
 class DatabaseConfig:
     """Database configuration."""
-    url: str = "sqlite:///nmap_ai.db"
+    url: str = field(default_factory=_default_database_url)
     echo: bool = False
     pool_size: int = 5
     max_overflow: int = 10
