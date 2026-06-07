@@ -13,14 +13,16 @@ import sys
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from nmap_ai.config import Config
+from nmap_ai.config import NmapAIConfig
 from nmap_ai.utils.logger import get_logger
 
 
 @pytest.fixture(scope="session")
 def test_config():
     """Create a test configuration for all tests."""
-    config = Config()
+    config = NmapAIConfig()
+    # data_dir is not a real config field; attach it for fixtures/tests that
+    # want a scratch directory to write databases/artifacts into.
     config.data_dir = tempfile.mkdtemp(prefix="nmap_ai_test_")
     config.log_level = "DEBUG"
     config.debug = True
@@ -157,18 +159,6 @@ def pytest_runtest_setup(item):
     if "network" in item.keywords:
         pytest.importorskip("requests")
         
-    # Skip AI tests if AI dependencies not available
-    if "ai" in item.keywords:
-        try:
-            import tensorflow
-            import torch
-        except ImportError:
-            pytest.skip("AI dependencies not available")
-
-
-# Timeout for slow tests
-def pytest_timeout_set_timer(item, timeout):
-    """Set timeout for tests."""
-    if "slow" in item.keywords:
-        return max(timeout, 300)  # 5 minutes for slow tests
-    return timeout
+    # The engine is heuristic/rule-based — there is no ML stack to gate on.
+    # The "ai" marker is retained for any future ML-backed tests (see roadmap
+    # Phase 3) but currently imposes no extra requirements.
