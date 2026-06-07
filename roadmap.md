@@ -15,8 +15,8 @@ The single biggest problem: the README and feature list promise things the code 
 | Item | Verify by |
 |---|---|
 | ~~Decide: real ML or heuristic engine?~~ **DONE 2026-06-07** — chose heuristic (see Decision log) | ✅ |
-| Remove `tensorflow`, `torch`, `transformers` (and other unused deps) from `requirements.txt`; rewrite README "AI Capabilities" section as "Heuristic-based scan intelligence" | `pip install -r requirements.txt` completes in <30s; README claims match code behavior |
-| Strip non-existent `.pkl` model paths from `AIConfig` in `config.py` | `AIConfig` only references fields the code actually uses |
+| ~~Remove `tensorflow`, `torch`, `transformers` (and other unused deps) from `requirements.txt`; rewrite README "AI Capabilities" section as "Heuristic-based scan intelligence"~~ **DONE 2026-06-07** (commit 8e900eb) — also aligned `pyproject.toml`/`setup.py` deps & extras, fixed broken console-script entry points | ✅ |
+| ~~Strip non-existent `.pkl` model paths from `AIConfig` in `config.py`~~ **DONE 2026-06-07** (commit 8e900eb) | ✅ |
 
 ## Phase 1: Make the existing surface honest (~1 week)
 
@@ -24,10 +24,10 @@ Finish or remove the half-built pieces.
 
 | Item | Verify by |
 |---|---|
-| Implement or delete `_export_xml` / `_export_csv` in `scanner.py:342-349` (currently `pass`) | `nmap-ai scan ... --format csv -o out.csv` produces a valid CSV; or the option is removed from the CLI |
-| Generated NSE scripts: replace `-- Add actual test logic here` stubs with working HTTP requests (start with `xss` and `sql_injection` since they share the HTTP path) | A generated script runs against `scanme.nmap.org` without Lua errors |
-| Web API: either implement `POST /api/v1/scan` + `GET /api/v1/results/{id}` against `NmapAIScanner`, or strip the 501 stubs from `web/main.py:123-129` | `/docs` only shows endpoints that return ≠501 |
-| GUI: either build a working scan form in `gui/main.py` (it's currently a single "under development" label) or remove the `--gui` flag | `python -m nmap_ai --gui` launches something usable, or the flag errors with "not available" |
+| ~~Implement or delete `_export_xml` / `_export_csv` in `scanner.py` (currently `pass`)~~ **DONE 2026-06-07** (commit 0c46a31) — both implemented + unit-tested | ✅ |
+| ~~Generated NSE scripts: replace `-- Add actual test logic here` stubs with working HTTP requests (xss, sql_injection)~~ **DONE 2026-06-07** (commit a73da0d) — real http.get logic; also fixed a Lua 5.3 `math.random(float)` crash; all 6 variants parse as valid Lua. *Note: not yet run against live `scanme.nmap.org` (no nmap/Lua runtime in dev env); validated via `luaparser`.* | ✅ (parse-validated) |
+| ~~Web API: implement or strip the 501 stubs~~ **DONE 2026-06-07** (commit 15b45f4) — stripped the two HTTP 501 stub endpoints; extracted `create_app()` + module-level `app` for testability | ✅ |
+| ~~GUI: build a working scan form or make `--gui` honest~~ **DONE 2026-06-07** (commit c456923) — chose honest stub: `--gui` exits non-zero with a pointer to the CLI (no fake window) | ✅ |
 
 ## Phase 2: Test foundation (~1 week, parallel with Phase 1)
 
@@ -35,7 +35,8 @@ You can't refactor what you can't verify.
 
 | Item | Verify by |
 |---|---|
-| Add `tests/unit/test_scanner.py` covering `NmapAIScanner` with a mocked `nmap.PortScanner` | `pytest tests/unit/test_scanner.py` passes; covers happy path + invalid target + async path |
+| ~~Repair the broken test scaffold so the suite collects at all~~ **DONE 2026-06-07** (commit 15b45f4) — fixed `Config` imports, invalid pytest hook, ML import gate; rewrote API integration test to the real contract | ✅ |
+| ~~Add `tests/unit/test_scanner.py` covering `NmapAIScanner` with a mocked `nmap.PortScanner`~~ **DONE 2026-06-07** (commit 0c46a31) — happy path, invalid target/ports, exporters, save dispatch | ✅ (async path still TODO) |
 | Add `tests/unit/test_ai_engine.py` covering `optimize_scan_arguments`, `_analyze_target_result`, `create_scan_plan` | Coverage of `core/ai_engine.py` ≥ 70% |
 | Add `tests/unit/test_config.py` covering YAML round-trip + the `field(default_factory=...)` fix in commit c61d49f (regression guard) | Loading a saved config returns equal dataclass |
 | Wire up CI: GitHub Actions running `pytest`, `black --check`, `flake8`, `mypy` on PRs | Green check on a sample PR |
