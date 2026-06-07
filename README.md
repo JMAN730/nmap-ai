@@ -34,7 +34,7 @@
 
 ### 🖥️ User Interfaces
 - **CLI**: Click-based command-line interface (`scan`, `smart-scan`, `generate-script`, `batch`, `history`) — *working*
-- **GUI**: PyQt6 desktop shell — *placeholder window today, real scan UI on roadmap*
+- **GUI**: *not available yet* — `--gui` exits with a pointer to the CLI (desktop UI is on the roadmap)
 - **Web**: FastAPI server with `/health` and `/api/v1/status` endpoints — *scan/results endpoints planned*
 
 ### 🔧 Scanning Features
@@ -108,15 +108,10 @@ docker run -it --rm \
 
 ## 💻 Usage
 
-### 🖥️ GUI Mode
+### 🖥️ GUI Mode *(not available yet)*
 
-```bash
-# Launch GUI application
-python -m nmap_ai --gui
-
-# Or use the desktop shortcut after installation
-nmap-ai-gui
-```
+The desktop GUI is on the roadmap. `python -m nmap_ai --gui` currently exits
+with a message pointing you to the CLI below. See [roadmap.md](roadmap.md).
 
 ### ⌨️ CLI Mode
 
@@ -194,7 +189,7 @@ adaptive_results = scanner.adaptive_scan(
 
 ## 📱 GUI (Planned)
 
-> The GUI module currently launches a placeholder PyQt6 window. The following are roadmap items, not shipping features. See [roadmap.md](roadmap.md) for sequencing.
+> The GUI is not implemented yet — `--gui` exits with a pointer to the CLI. The following are roadmap items, not shipping features. See [roadmap.md](roadmap.md) for sequencing.
 
 - Real-time scan progress visualization
 - Interactive network topology maps
