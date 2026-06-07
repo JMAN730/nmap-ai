@@ -1,0 +1,17 @@
+[flake8]
+# Black-compatible: black uses 88 cols and its own slicing/line-break style.
+max-line-length = 100
+extend-ignore = E203, W503, E501
+exclude =
+    .git,
+    __pycache__,
+    build,
+    dist,
+    .venv,
+    venv,
+    .eggs,
+    *.egg-info,
+    # Parallel/legacy CLI implementation not wired into the entry points.
+    nmap_ai/cli/commands,
+    # Standalone example scripts, not part of the package import surface.
+    examples

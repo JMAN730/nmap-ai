@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Gating job: the test suite must pass on every supported Python version.
+  test:
+    name: tests (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run tests
+        run: python -m pytest
+
+  # Advisory job: style/type checks. The legacy tree carries significant
+  # formatting/lint/type debt (see roadmap.md Phase 4); these run on every
+  # PR to surface issues but are non-gating until that debt is paid down.
+  # Flip continue-on-error to false per tool as each is brought to green.
+  lint:
+    name: lint & types (advisory)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install black flake8 mypy
+
+      - name: black --check
+        continue-on-error: true
+        run: black --check nmap_ai tests
+
+      - name: flake8
+        continue-on-error: true
+        run: flake8 nmap_ai tests
+
+      - name: mypy
+        continue-on-error: true
+        run: mypy nmap_ai
