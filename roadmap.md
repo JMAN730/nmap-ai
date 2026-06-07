@@ -37,9 +37,13 @@ You can't refactor what you can't verify.
 |---|---|
 | ~~Repair the broken test scaffold so the suite collects at all~~ **DONE 2026-06-07** (commit 15b45f4) — fixed `Config` imports, invalid pytest hook, ML import gate; rewrote API integration test to the real contract | ✅ |
 | ~~Add `tests/unit/test_scanner.py` covering `NmapAIScanner` with a mocked `nmap.PortScanner`~~ **DONE 2026-06-07** (commit 0c46a31) — happy path, invalid target/ports, exporters, save dispatch | ✅ (async path still TODO) |
-| Add `tests/unit/test_ai_engine.py` covering `optimize_scan_arguments`, `_analyze_target_result`, `create_scan_plan` | Coverage of `core/ai_engine.py` ≥ 70% |
-| Add `tests/unit/test_config.py` covering YAML round-trip + the `field(default_factory=...)` fix in commit c61d49f (regression guard) | Loading a saved config returns equal dataclass |
-| Wire up CI: GitHub Actions running `pytest`, `black --check`, `flake8`, `mypy` on PRs | Green check on a sample PR |
+| ~~Add `tests/unit/test_ai_engine.py` covering `optimize_scan_arguments`, `_analyze_target_result`, `create_scan_plan`~~ **DONE 2026-06-07** — `core/ai_engine.py` coverage ~96% | ✅ |
+| ~~Add `tests/unit/test_config.py` covering YAML round-trip + the `field(default_factory=...)` fix in commit c61d49f (regression guard)~~ **DONE 2026-06-07** — YAML+JSON round-trip equal; instance-independence guard | ✅ |
+| ~~Wire up CI: GitHub Actions running `pytest`, `black --check`, `flake8`, `mypy` on PRs~~ **DONE 2026-06-07** — `.github/workflows/ci.yml`: pytest gating on py3.9–3.12; **black/flake8/mypy advisory** (continue-on-error) pending the cleanup below | ✅ (lint advisory) |
+
+**Lint/type debt (follow-up, slots into Phase 4):** the legacy tree is far from clean — `black --check` would reformat ~35 files and flake8 reports ~1400 issues, and mypy strict has not been run to green. CI runs these advisory today. Pay down per-area and flip each tool to gating in `ci.yml` as it reaches green. A `.flake8` already excludes the dead `nmap_ai/cli/commands` tree and `examples/`.
+
+**Dead code (follow-up):** `nmap_ai/cli/commands/` is a parallel CLI implementation that imports the non-existent `Config` class and is wired into nothing (the real CLI is `nmap_ai/cli/main.py`). Likewise several `examples/` import `Config`. Decide: delete or repair.
 
 ## Phase 3: Real intelligence layer (~2–4 weeks, only if Phase 0 picked "real ML")
 
