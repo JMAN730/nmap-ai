@@ -340,11 +340,93 @@ class NmapAIScanner:
         self.logger.info(f"Results saved to {output_path}")
     
     def _export_xml(self, results: Dict[str, Any], output_path: Path) -> None:
-        """Export results to XML format."""
-        # Implementation for XML export
-        pass
-    
+        """Export a scan summary to an XML document.
+
+        Produces a ``<nmapai_scan>`` root carrying scan metadata, with a
+        ``<host>`` element per target and a ``<port>`` element per open port.
+        """
+        import xml.etree.ElementTree as ET
+
+        root = ET.Element("nmapai_scan")
+        for key in ("scan_id", "start_time", "end_time", "duration",
+                    "ports", "arguments", "ai_enabled"):
+            if key in results:
+                root.set(key, str(results[key]))
+
+        targets = results.get("targets", [])
+        if targets:
+            root.set("targets", ",".join(str(t) for t in targets))
+
+        hosts_elem = ET.SubElement(root, "hosts")
+        for target, result in results.get("results", {}).items():
+            host_elem = ET.SubElement(hosts_elem, "host", {"address": str(target)})
+
+            if "error" in result:
+                host_elem.set("status", "error")
+                ET.SubElement(host_elem, "error").text = str(result.get("error", ""))
+                continue
+
+            parsed = result.get("parsed", {})
+            host_elem.set("status", str(parsed.get("status", result.get("status", ""))))
+
+            ports_elem = ET.SubElement(host_elem, "ports")
+            for port_info in parsed.get("open_ports", []):
+                ET.SubElement(ports_elem, "port", {
+                    "portid": str(port_info.get("port", "")),
+                    "protocol": str(port_info.get("protocol", "")),
+                    "state": str(port_info.get("state", "")),
+                    "service": str(port_info.get("name", "")),
+                    "product": str(port_info.get("product", "")),
+                    "version": str(port_info.get("version", "")),
+                })
+
+        tree = ET.ElementTree(root)
+        if hasattr(ET, "indent"):  # pretty-print on Python 3.9+
+            ET.indent(tree, space="  ")
+        tree.write(output_path, encoding="utf-8", xml_declaration=True)
+
     def _export_csv(self, results: Dict[str, Any], output_path: Path) -> None:
-        """Export results to CSV format."""
-        # Implementation for CSV export
-        pass
+        """Export a scan summary to CSV, one row per open port.
+
+        Targets with no open ports (or that errored) still produce a single
+        row so they are not silently dropped from the report.
+        """
+        import csv
+
+        scan_id = results.get("scan_id", "")
+        fieldnames = [
+            "scan_id", "target", "host_status", "port", "protocol",
+            "service", "product", "version", "port_state", "error",
+        ]
+
+        with open(output_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+
+            for target, result in results.get("results", {}).items():
+                base = {"scan_id": scan_id, "target": target}
+
+                if "error" in result:
+                    writer.writerow({**base, "host_status": "error",
+                                     "error": result.get("error", "")})
+                    continue
+
+                parsed = result.get("parsed", {})
+                host_status = parsed.get("status", result.get("status", ""))
+                open_ports = parsed.get("open_ports", [])
+
+                if not open_ports:
+                    writer.writerow({**base, "host_status": host_status})
+                    continue
+
+                for port_info in open_ports:
+                    writer.writerow({
+                        **base,
+                        "host_status": host_status,
+                        "port": port_info.get("port", ""),
+                        "protocol": port_info.get("protocol", ""),
+                        "service": port_info.get("name", ""),
+                        "product": port_info.get("product", ""),
+                        "version": port_info.get("version", ""),
+                        "port_state": port_info.get("state", ""),
+                    })
