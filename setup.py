@@ -27,7 +27,7 @@ setup(
     version="1.0.0",
     author="Yashab Alam",
     author_email="yashabalam707@gmail.com",
-    description="AI-Powered Network Scanning & Automation Tool",
+    description="Heuristic-driven Nmap wrapper with rule-based scan optimization and NSE script scaffolding",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/yashab-cyber/nmap-ai",
@@ -62,22 +62,12 @@ setup(
             "uvicorn>=0.20.0",
             "jinja2>=3.1.0",
         ],
-        "ai": [
-            "tensorflow>=2.8.0",
-            "torch>=1.11.0",
-            "transformers>=4.20.0",
-            "scikit-learn>=1.0.0",
-        ],
         "full": [
             "PyQt6>=6.4.0",
             "pyqtgraph>=0.13.0",
             "fastapi>=0.95.0",
             "uvicorn>=0.20.0",
             "jinja2>=3.1.0",
-            "tensorflow>=2.8.0",
-            "torch>=1.11.0",
-            "transformers>=4.20.0",
-            "scikit-learn>=1.0.0",
         ]
     },
     entry_points={

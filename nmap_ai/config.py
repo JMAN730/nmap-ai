@@ -12,12 +12,12 @@ from dataclasses import dataclass, asdict, field
 
 @dataclass
 class AIConfig:
-    """AI model configuration."""
-    script_generation_model: str = "models/script_gen_v3.pkl"
-    vulnerability_detection_model: str = "models/vuln_detect_v2.pkl"
-    port_prediction_model: str = "models/port_pred_v1.pkl"
+    """Heuristic analysis configuration.
+
+    Name kept as AIConfig for compatibility with existing callers, but the
+    underlying engine is rule-based — there are no ML models loaded at runtime.
+    """
     confidence_threshold: float = 0.7
-    max_script_length: int = 5000
 
 
 @dataclass

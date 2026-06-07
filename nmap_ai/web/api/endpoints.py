@@ -11,10 +11,10 @@ from datetime import datetime
 from ...core.scanner import NmapAIScanner
 from ...ai.smart_scanner import SmartScanner
 from ...ai.vulnerability_detector import VulnerabilityDetector
-from ...config import Config
+from ...config import NmapAIConfig, get_config as _get_global_config
 from ...utils.logger import get_logger
 from .models import (
-    ScanRequest, ScanResponse, ScanStatus, 
+    ScanRequest, ScanResponse, ScanStatus,
     VulnerabilityReport, ConfigUpdate,
     ErrorResponse
 )
@@ -27,16 +27,16 @@ active_scans: Dict[str, Dict] = {}
 scan_results: Dict[str, Dict] = {}
 
 
-def get_config() -> Config:
+def get_config() -> NmapAIConfig:
     """Get current configuration."""
-    return Config()
+    return _get_global_config()
 
 
 @router.post("/scan/start", response_model=ScanResponse)
 async def start_scan(
     scan_request: ScanRequest,
     background_tasks: BackgroundTasks,
-    config: Config = Depends(get_config)
+    config: NmapAIConfig = Depends(get_config)
 ):
     """
     Start a new network scan.
@@ -200,7 +200,7 @@ async def list_scans():
 @router.post("/vulnerability/analyze")
 async def analyze_vulnerabilities(
     scan_results_data: Dict[str, Any],
-    config: Config = Depends(get_config)
+    config: NmapAIConfig = Depends(get_config)
 ):
     """
     Analyze scan results for vulnerabilities.
@@ -249,7 +249,7 @@ async def analyze_vulnerabilities(
 
 
 @router.get("/config")
-async def get_configuration(config: Config = Depends(get_config)):
+async def get_configuration(config: NmapAIConfig = Depends(get_config)):
     """
     Get current application configuration.
     
@@ -277,7 +277,7 @@ async def get_configuration(config: Config = Depends(get_config)):
 @router.put("/config")
 async def update_configuration(
     config_update: ConfigUpdate,
-    config: Config = Depends(get_config)
+    config: NmapAIConfig = Depends(get_config)
 ):
     """
     Update application configuration.
@@ -332,7 +332,7 @@ async def health_check():
     }
 
 
-async def execute_scan(scan_id: str, scan_request: ScanRequest, config: Config):
+async def execute_scan(scan_id: str, scan_request: ScanRequest, config: NmapAIConfig):
     """
     Execute scan in background task.
     
