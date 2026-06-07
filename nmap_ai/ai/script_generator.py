@@ -203,16 +203,19 @@ categories = {{{categories}}}
         return ', '.join([f'"{cat}"' for cat in categories])
     
     def _generate_dependencies(self, target_type: str, vulnerabilities: Optional[List[str]]) -> str:
-        """Generate script dependencies."""
+        """Generate script dependencies (`require` lines), de-duplicated."""
         deps = ['stdnse', 'shortport']
-        
-        if 'web' in target_type.lower() or (vulnerabilities and any('web' in str(v) for v in vulnerabilities)):
-            deps.extend(['http', 'httpspider'])
-        
-        if vulnerabilities and 'sql_injection' in vulnerabilities:
-            deps.append('sql')
-        
-        return '\n'.join([f'local {dep} = require "{dep}"' for dep in deps])
+
+        vulns = vulnerabilities or []
+        # HTTP-based checks need the http + url libraries.
+        http_vulns = {'xss', 'sql_injection', 'directory_traversal', 'rce'}
+        if 'web' in target_type.lower() or any(v in http_vulns for v in vulns):
+            deps.extend(['http', 'url'])
+
+        # De-duplicate while preserving order.
+        seen = set()
+        ordered = [d for d in deps if not (d in seen or seen.add(d))]
+        return '\n'.join([f'local {dep} = require "{dep}"' for dep in ordered])
     
     def _generate_portrule(self, target_type: str) -> str:
         """Generate port rule for the script."""
@@ -280,21 +283,39 @@ end'''
         """Generate specific vulnerability check code."""
         if vuln == 'sql_injection':
             return '''
-    -- SQL Injection Test
-    local sql_payloads = {"' OR '1'='1", "'; DROP TABLE test--"}
+    -- SQL Injection Test (error-based, HTTP)
+    -- Sends crafted values and looks for database error signatures in the
+    -- response body. Safe, non-destructive payloads only.
+    local sql_payloads = {"'", "'\\"", "1' OR '1'='1"}
+    local sql_errors = {
+        "SQL syntax", "mysql_fetch", "ORA%-%d+", "PostgreSQL.-ERROR",
+        "Microsoft SQL", "Unclosed quotation mark", "SQLite3::"
+    }
     for _, payload in ipairs(sql_payloads) do
-        -- Test payload (implementation depends on service)
         stdnse.debug2("Testing SQL injection with: %s", payload)
-        -- Add actual test logic here
+        local resp = http.get(host, port, "/?id=" .. url.escape(payload))
+        if resp and resp.body then
+            for _, sig in ipairs(sql_errors) do
+                if string.find(resp.body, sig) then
+                    table.insert(results, ("Possible SQL injection: error signature '%s' triggered by payload '%s'"):format(sig, payload))
+                    break
+                end
+            end
+        end
     end
 '''
         elif vuln == 'xss':
             return '''
-    -- Cross-Site Scripting Test
-    local xss_payloads = {'<script>alert("XSS")</script>', '<img src="x" onerror="alert(1)">'}
+    -- Reflected Cross-Site Scripting Test (HTTP)
+    -- Injects a marker payload into a query parameter and checks whether it
+    -- is echoed back unescaped in the response body.
+    local xss_payloads = {"<script>nmapai_xss</script>", "\\"><script>nmapai_xss</script>"}
     for _, payload in ipairs(xss_payloads) do
         stdnse.debug2("Testing XSS with: %s", payload)
-        -- Add actual test logic here
+        local resp = http.get(host, port, "/?q=" .. url.escape(payload))
+        if resp and resp.body and string.find(resp.body, payload, 1, true) then
+            table.insert(results, ("Reflected XSS: payload '%s' echoed unescaped"):format(payload))
+        end
     end
 '''
         elif vuln == 'weak_authentication':
@@ -324,7 +345,9 @@ end'''
         elif stealth_level == 'medium':
             return '''
     -- Medium stealth mode - moderate delays
-    local delay = math.random(0.5, 1.5)
+    -- math.random() returns a float in [0,1); avoid float args to
+    -- math.random(), which raise an error under Lua 5.3 (nmap's runtime).
+    local delay = 0.5 + math.random()
     stdnse.sleep(delay)
 '''
         else:  # low stealth
