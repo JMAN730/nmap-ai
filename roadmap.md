@@ -61,9 +61,11 @@ Lower priority but unblock real use.
 
 | Item | Verify by |
 |---|---|
-| Persist scan history beyond process lifetime (currently `self.scan_history: List[Dict]` lives in memory only — `nmap-ai history` always shows empty for a fresh process) | `nmap-ai scan ...` then a *new* `nmap-ai history` shows the prior scan. SQLAlchemy is already in `requirements.txt` — wire it to `DatabaseConfig.url` |
-| Hardcoded `secret_key: "change-me-in-production"` in `WebConfig` — load from env var, fail fast if web mode starts with the default | Web server refuses to start in non-debug mode without `NMAP_AI_SECRET_KEY` set |
-| Plugin discovery has no default plugin directory configured — `PluginManager` is instantiable but useless out of the box | Documented default dirs (e.g. `~/.nmap-ai/plugins/`, `./plugins/`) and a working example plugin in `examples/` |
+| ~~Persist scan history beyond process lifetime~~ **DONE 2026-06-07** — `core/history.py` `ScanHistoryStore` (stdlib sqlite3, no ORM) wired to `DatabaseConfig.url`; default now `~/.nmap-ai/history.db` (cwd-independent). A fresh scanner over the same DB sees prior scans (tested). | ✅ |
+| ~~Hardcoded `secret_key` in `WebConfig` — load from env, fail fast on default~~ **DONE 2026-06-07** — `NMAP_AI_SECRET_KEY` env > config; `web_main` exits non-zero in non-debug mode while the default key is in effect. | ✅ |
+| ~~Plugin discovery has no default directory~~ **DONE 2026-06-07** — `default_plugin_dirs()` (`~/.nmap-ai/plugins`, `./plugins`) used by `PluginManager()`; working `examples/plugins/markdown_report_plugin.py` + README; loaded end-to-end in tests. | ✅ |
+
+> **Note (SQLAlchemy):** the original plan said "SQLAlchemy is already in requirements.txt." It was removed in Phase 0 (unused, heavy). History uses stdlib `sqlite3` instead — same approach as `vulnerability_detector.py`, no new dependency.
 
 ## Sequencing
 
