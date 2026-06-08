@@ -11,6 +11,8 @@ import os
 import sys
 from typing import Optional
 
+from ..config import DEFAULT_SECRET_KEY, get_config
+
 
 # Inline HTML served at "/" when no Jinja template is available.
 _FALLBACK_INDEX_HTML = """
@@ -57,15 +59,42 @@ _FALLBACK_INDEX_HTML = """
 """
 
 
-def create_app():
+def resolve_secret_key(config) -> str:
+    """Secret key precedence: NMAP_AI_SECRET_KEY env var > config value."""
+    return os.environ.get("NMAP_AI_SECRET_KEY") or config.web.secret_key
+
+
+def secret_key_error(config) -> Optional[str]:
+    """Return an error message if the secret key is unsafe to serve with.
+
+    Returns None when it is safe (debug mode, or a non-default key is set).
+    """
+    if config.web.debug:
+        return None
+    key = resolve_secret_key(config)
+    if not key or key == DEFAULT_SECRET_KEY:
+        return (
+            "Refusing to start the web server with the default secret key.\n"
+            "Set a strong secret via the NMAP_AI_SECRET_KEY environment "
+            "variable,\nor enable debug mode (web.debug = true) for local "
+            "development."
+        )
+    return None
+
+
+def create_app(config=None):
     """Build and return the NMAP-AI FastAPI application.
 
     Raises ImportError if the optional web dependencies are not installed.
+    This does not enforce secret-key safety (so the module is import-safe);
+    that check happens at server start in web_main().
     """
     from fastapi import FastAPI, Request
     from fastapi.responses import HTMLResponse
     from fastapi.staticfiles import StaticFiles
     from fastapi.templating import Jinja2Templates
+
+    config = config or get_config()
 
     app = FastAPI(
         title="NMAP-AI Web Interface",
@@ -109,6 +138,7 @@ def create_app():
             },
         }
 
+    app.state.secret_key = resolve_secret_key(config)
     return app
 
 
@@ -128,7 +158,15 @@ def web_main(port: int = 8080, host: str = "localhost", args: Optional[list] = N
             print("Web dependencies not installed. Please install with: pip install nmap-ai[web]")
             sys.exit(1)
 
-        application = app if app is not None else create_app()
+        config = get_config()
+
+        # Fail fast rather than serving with the insecure default secret key.
+        err = secret_key_error(config)
+        if err:
+            print(err, file=sys.stderr)
+            sys.exit(1)
+
+        application = create_app(config)
 
         print("🚀 Starting NMAP-AI Web Interface...")
         print(f"🌐 Access the web interface at: http://{host}:{port}")

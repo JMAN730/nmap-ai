@@ -41,13 +41,18 @@ class OutputConfig:
     report_templates_dir: str = "data/templates"
 
 
+# Sentinel secret key. The web server refuses to start in non-debug mode
+# while this is still in effect (set NMAP_AI_SECRET_KEY instead).
+DEFAULT_SECRET_KEY = "change-me-in-production"
+
+
 @dataclass
 class WebConfig:
     """Web interface configuration."""
     host: str = "localhost"
     port: int = 8080
     debug: bool = False
-    secret_key: str = "change-me-in-production"
+    secret_key: str = DEFAULT_SECRET_KEY
     max_upload_size: int = 10 * 1024 * 1024  # 10MB
 
 

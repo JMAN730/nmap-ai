@@ -132,6 +132,10 @@ nmap-ai --batch targets.txt --ai-analysis --format pdf
 ### 🌐 Web Dashboard
 
 ```bash
+# Set a secret key (required outside debug mode — the server refuses to
+# start with the built-in default)
+export NMAP_AI_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+
 # Start web server
 nmap-ai --web --port 8080
 
