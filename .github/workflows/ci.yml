@@ -38,7 +38,7 @@ jobs:
         run: python -m pytest
 
   # Gating: flake8 must be clean on the maintained surface (config in
-  # .flake8). The dead cli/commands tree was removed; examples are excluded.
+  # .flake8) — the package, tests, and examples.
   flake8:
     name: flake8
     runs-on: ubuntu-latest
@@ -58,7 +58,7 @@ jobs:
           pip install flake8
 
       - name: flake8
-        run: flake8 nmap_ai tests
+        run: flake8 nmap_ai tests examples
 
   # Advisory: black + mypy still carry debt on the legacy tree (see
   # roadmap.md). They run to surface issues but do not gate; flip each to a

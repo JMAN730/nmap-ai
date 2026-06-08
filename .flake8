@@ -10,6 +10,4 @@ exclude =
     .venv,
     venv,
     .eggs,
-    *.egg-info,
-    # Standalone example scripts, not part of the package import surface.
-    examples
+    *.egg-info
