@@ -6,7 +6,6 @@ installed and without touching the network.
 """
 import csv
 import xml.etree.ElementTree as ET
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest

@@ -84,18 +84,18 @@ class NmapAIConfig:
 
 class ConfigManager:
     """Configuration manager for NMAP-AI."""
-    
+
     def __init__(self, config_file: Optional[str] = None):
         self.config_file = config_file or self._get_default_config_path()
         self.config = NmapAIConfig()
         self.load_config()
-    
+
     def _get_default_config_path(self) -> str:
         """Get default configuration file path."""
         config_dir = Path.home() / ".nmap-ai"
         config_dir.mkdir(exist_ok=True)
         return str(config_dir / "config.yml")
-    
+
     def load_config(self) -> None:
         """Load configuration from file."""
         if os.path.exists(self.config_file):
@@ -105,19 +105,19 @@ class ConfigManager:
                         data = yaml.safe_load(f)
                     else:
                         data = json.load(f)
-                
+
                 if data:
                     self._update_config_from_dict(data)
             except Exception as e:
                 print(f"Warning: Could not load config file {self.config_file}: {e}")
-    
+
     def save_config(self) -> None:
         """Save configuration to file."""
         try:
             os.makedirs(os.path.dirname(self.config_file), exist_ok=True)
-            
+
             data = asdict(self.config)
-            
+
             with open(self.config_file, 'w') as f:
                 if self.config_file.endswith(('.yml', '.yaml')):
                     yaml.dump(data, f, default_flow_style=False, indent=2)
@@ -125,44 +125,44 @@ class ConfigManager:
                     json.dump(data, f, indent=2)
         except Exception as e:
             print(f"Warning: Could not save config file {self.config_file}: {e}")
-    
+
     def _update_config_from_dict(self, data: Dict[str, Any]) -> None:
         """Update configuration from dictionary."""
         if "ai" in data:
             for key, value in data["ai"].items():
                 if hasattr(self.config.ai, key):
                     setattr(self.config.ai, key, value)
-        
+
         if "scanning" in data:
             for key, value in data["scanning"].items():
                 if hasattr(self.config.scanning, key):
                     setattr(self.config.scanning, key, value)
-        
+
         if "output" in data:
             for key, value in data["output"].items():
                 if hasattr(self.config.output, key):
                     setattr(self.config.output, key, value)
-        
+
         if "web" in data:
             for key, value in data["web"].items():
                 if hasattr(self.config.web, key):
                     setattr(self.config.web, key, value)
-        
+
         if "database" in data:
             for key, value in data["database"].items():
                 if hasattr(self.config.database, key):
                     setattr(self.config.database, key, value)
-        
+
         # Top-level attributes
         if "log_level" in data:
             self.config.log_level = data["log_level"]
         if "debug" in data:
             self.config.debug = data["debug"]
-    
+
     def get_config(self) -> NmapAIConfig:
         """Get the current configuration."""
         return self.config
-    
+
     def update_config(self, **kwargs) -> None:
         """Update configuration values."""
         for section, updates in kwargs.items():
@@ -171,7 +171,7 @@ class ConfigManager:
                 for key, value in updates.items():
                     if hasattr(section_config, key):
                         setattr(section_config, key, value)
-    
+
     def reset_to_defaults(self) -> None:
         """Reset configuration to defaults."""
         self.config = NmapAIConfig()
@@ -181,9 +181,11 @@ class ConfigManager:
 # Global configuration instance
 config_manager = ConfigManager()
 
+
 def get_config() -> NmapAIConfig:
     """Get the global configuration."""
     return config_manager.get_config()
+
 
 def update_config(**kwargs) -> None:
     """Update the global configuration."""

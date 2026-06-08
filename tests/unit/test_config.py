@@ -1,7 +1,6 @@
 """
 Unit tests for configuration management.
 """
-import pytest
 
 from nmap_ai.config import (
     NmapAIConfig, AIConfig, ScanConfig, ConfigManager, get_config,

@@ -39,11 +39,11 @@ You can't refactor what you can't verify.
 | ~~Add `tests/unit/test_scanner.py` covering `NmapAIScanner` with a mocked `nmap.PortScanner`~~ **DONE 2026-06-07** (commit 0c46a31) — happy path, invalid target/ports, exporters, save dispatch | ✅ (async path still TODO) |
 | ~~Add `tests/unit/test_ai_engine.py` covering `optimize_scan_arguments`, `_analyze_target_result`, `create_scan_plan`~~ **DONE 2026-06-07** — `core/ai_engine.py` coverage ~96% | ✅ |
 | ~~Add `tests/unit/test_config.py` covering YAML round-trip + the `field(default_factory=...)` fix in commit c61d49f (regression guard)~~ **DONE 2026-06-07** — YAML+JSON round-trip equal; instance-independence guard | ✅ |
-| ~~Wire up CI: GitHub Actions running `pytest`, `black --check`, `flake8`, `mypy` on PRs~~ **DONE 2026-06-07** — `.github/workflows/ci.yml`: pytest gating on py3.9–3.12; **black/flake8/mypy advisory** (continue-on-error) pending the cleanup below | ✅ (lint advisory) |
+| ~~Wire up CI: GitHub Actions running `pytest`, `black --check`, `flake8`, `mypy` on PRs~~ **DONE 2026-06-07** — `.github/workflows/ci.yml`: pytest **gating** (py3.9–3.12), flake8 **gating**, black/mypy advisory | ✅ |
 
-**Lint/type debt (follow-up, slots into Phase 4):** the legacy tree is far from clean — `black --check` would reformat ~35 files and flake8 reports ~1400 issues, and mypy strict has not been run to green. CI runs these advisory today. Pay down per-area and flip each tool to gating in `ci.yml` as it reaches green. A `.flake8` already excludes the dead `nmap_ai/cli/commands` tree and `examples/`.
+**Lint/type debt (follow-up):** flake8 is now **clean and gating** on `nmap_ai` + `tests` (commit pending). black (~reformat) and mypy (strict) remain **advisory** — flip each to a gating job in `ci.yml` as it reaches green. `.flake8` is black-compatible (max-line-length 100; ignores E203/W503/E501) and excludes `examples/`.
 
-**Dead code (follow-up):** `nmap_ai/cli/commands/` is a parallel CLI implementation that imports the non-existent `Config` class and is wired into nothing (the real CLI is `nmap_ai/cli/main.py`). Likewise several `examples/` import `Config`. Decide: delete or repair.
+**Dead code:** ~~`nmap_ai/cli/commands/`~~ **DELETED 2026-06-07** — was a parallel CLI importing the non-existent `Config`, wired into nothing (real CLI is `nmap_ai/cli/main.py`). Note: several `examples/*.py` still import `Config`; they're excluded from flake8 and not part of the import surface — repair or delete in a later pass.
 
 ## Phase 3: Real intelligence layer (~2–4 weeks, only if Phase 0 picked "real ML")
 

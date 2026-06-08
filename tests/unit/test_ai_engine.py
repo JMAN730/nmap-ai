@@ -81,8 +81,10 @@ class TestEnhanceResults:
     def test_adds_analysis_and_insights(self, engine):
         results = {
             "results": {
-                "10.0.0.1": {"parsed": {"open_ports": [{"port": 23, "name": "telnet"}],
-                                         "services": ["telnet"]}},
+                "10.0.0.1": {"parsed": {
+                    "open_ports": [{"port": 23, "name": "telnet"}],
+                    "services": ["telnet"],
+                }},
                 "10.0.0.2": {"error": "down"},
             }
         }

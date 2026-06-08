@@ -11,7 +11,5 @@ exclude =
     venv,
     .eggs,
     *.egg-info,
-    # Parallel/legacy CLI implementation not wired into the entry points.
-    nmap_ai/cli/commands,
     # Standalone example scripts, not part of the package import surface.
     examples

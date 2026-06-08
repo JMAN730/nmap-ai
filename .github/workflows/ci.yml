@@ -37,12 +37,10 @@ jobs:
       - name: Run tests
         run: python -m pytest
 
-  # Advisory job: style/type checks. The legacy tree carries significant
-  # formatting/lint/type debt (see roadmap.md Phase 4); these run on every
-  # PR to surface issues but are non-gating until that debt is paid down.
-  # Flip continue-on-error to false per tool as each is brought to green.
-  lint:
-    name: lint & types (advisory)
+  # Gating: flake8 must be clean on the maintained surface (config in
+  # .flake8). The dead cli/commands tree was removed; examples are excluded.
+  flake8:
+    name: flake8
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -57,15 +55,35 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install black flake8 mypy
+          pip install flake8
+
+      - name: flake8
+        run: flake8 nmap_ai tests
+
+  # Advisory: black + mypy still carry debt on the legacy tree (see
+  # roadmap.md). They run to surface issues but do not gate; flip each to a
+  # gating job (like flake8 above) as it is brought to green.
+  style:
+    name: black & mypy (advisory)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install black mypy
 
       - name: black --check
         continue-on-error: true
         run: black --check nmap_ai tests
-
-      - name: flake8
-        continue-on-error: true
-        run: flake8 nmap_ai tests
 
       - name: mypy
         continue-on-error: true
