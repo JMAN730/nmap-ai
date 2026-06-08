@@ -14,6 +14,18 @@ from dataclasses import dataclass
 from ..utils.logger import get_logger
 
 
+def default_plugin_dirs() -> List[Path]:
+    """Default locations searched for plugins, in priority order.
+
+    - ``~/.nmap-ai/plugins`` — user-global plugins
+    - ``./plugins`` — project-local plugins (current working directory)
+    """
+    return [
+        Path.home() / ".nmap-ai" / "plugins",
+        Path.cwd() / "plugins",
+    ]
+
+
 @dataclass
 class PluginMetadata:
     """Plugin metadata information."""
@@ -267,11 +279,17 @@ class PluginManager:
     def __init__(self, plugin_dirs: Optional[List[Path]] = None):
         """
         Initialize plugin manager.
-        
+
         Args:
-            plugin_dirs: List of directories to search for plugins
+            plugin_dirs: Directories to search for plugins. When omitted, the
+                default locations (``~/.nmap-ai/plugins`` and ``./plugins``)
+                are used so the manager is usable out of the box.
         """
-        self.plugin_dirs = plugin_dirs or []
+        self.plugin_dirs = (
+            [Path(d) for d in plugin_dirs]
+            if plugin_dirs is not None
+            else default_plugin_dirs()
+        )
         self.plugins: Dict[str, BasePlugin] = {}
         self.logger = get_logger("plugin_manager")
     
