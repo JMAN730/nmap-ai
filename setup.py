@@ -9,18 +9,32 @@ from pathlib import Path
 this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text(encoding='utf-8')
 
+
+def _parse_requirements(filename):
+    """Parse a requirements file into a list of requirement strings.
+
+    Strips blank lines, full-line comments, and inline ``# ...`` comments so
+    the resulting strings are valid packaging requirements (pip tolerates
+    inline comments, but ``setuptools`` metadata parsers do not).
+    """
+    reqs = []
+    try:
+        with open(filename) as f:
+            for line in f:
+                # Drop inline comments, then trim surrounding whitespace.
+                requirement = line.split('#', 1)[0].strip()
+                if requirement:
+                    reqs.append(requirement)
+    except FileNotFoundError:
+        pass
+    return reqs
+
+
 # Read requirements
-requirements = []
-with open('requirements.txt') as f:
-    requirements = [line.strip() for line in f if line.strip() and not line.startswith('#')]
+requirements = _parse_requirements('requirements.txt')
 
 # Read development requirements
-dev_requirements = []
-try:
-    with open('requirements-dev.txt') as f:
-        dev_requirements = [line.strip() for line in f if line.strip() and not line.startswith('#')]
-except FileNotFoundError:
-    pass
+dev_requirements = _parse_requirements('requirements-dev.txt')
 
 setup(
     name="nmap-ai",

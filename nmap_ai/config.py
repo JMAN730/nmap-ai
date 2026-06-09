@@ -18,6 +18,8 @@ class AIConfig:
     underlying engine is rule-based — there are no ML models loaded at runtime.
     """
     confidence_threshold: float = 0.7
+    enable_smart_scanning: bool = True
+    enable_vulnerability_detection: bool = True
 
 
 @dataclass

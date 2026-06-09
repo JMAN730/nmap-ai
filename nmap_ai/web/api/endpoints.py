@@ -256,18 +256,18 @@ async def get_configuration(config: NmapAIConfig = Depends(get_config)):
     """
     return {
         'scanning': {
-            'default_timeout': config.scanning_timeout,
-            'max_threads': config.max_threads,
-            'default_ports': config.default_ports
+            'default_timeout': config.scanning.default_timeout,
+            'max_threads': config.scanning.max_parallel_hosts,
+            'default_ports': config.scanning.default_ports
         },
         'ai': {
-            'enable_smart_scanning': config.enable_smart_scanning,
-            'enable_vulnerability_detection': config.enable_vulnerability_detection,
-            'confidence_threshold': config.ai_confidence_threshold
+            'enable_smart_scanning': config.ai.enable_smart_scanning,
+            'enable_vulnerability_detection': config.ai.enable_vulnerability_detection,
+            'confidence_threshold': config.ai.confidence_threshold
         },
         'output': {
-            'default_format': config.default_output_format,
-            'results_directory': config.results_dir
+            'default_format': config.output.default_format,
+            'results_directory': config.output.output_directory
         }
     }
 
@@ -291,15 +291,27 @@ async def update_configuration(
         # Update configuration (in production, save to file)
         if config_update.scanning:
             if config_update.scanning.default_timeout:
-                config.scanning_timeout = config_update.scanning.default_timeout
+                config.scanning.default_timeout = config_update.scanning.default_timeout
             if config_update.scanning.max_threads:
-                config.max_threads = config_update.scanning.max_threads
+                config.scanning.max_parallel_hosts = config_update.scanning.max_threads
+            if config_update.scanning.default_ports:
+                config.scanning.default_ports = config_update.scanning.default_ports
 
         if config_update.ai:
             if config_update.ai.enable_smart_scanning is not None:
-                config.enable_smart_scanning = config_update.ai.enable_smart_scanning
+                config.ai.enable_smart_scanning = config_update.ai.enable_smart_scanning
+            if config_update.ai.enable_vulnerability_detection is not None:
+                config.ai.enable_vulnerability_detection = (
+                    config_update.ai.enable_vulnerability_detection
+                )
             if config_update.ai.confidence_threshold:
-                config.ai_confidence_threshold = config_update.ai.confidence_threshold
+                config.ai.confidence_threshold = config_update.ai.confidence_threshold
+
+        if config_update.output:
+            if config_update.output.default_format:
+                config.output.default_format = config_update.output.default_format.value
+            if config_update.output.results_directory:
+                config.output.output_directory = config_update.output.results_directory
 
         logger.info("Configuration updated successfully")
 
